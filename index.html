@@ -24,6 +24,9 @@
             --header-bg: linear-gradient(to right, var(--primary), var(--secondary));
             --text-color: var(--dark);
             --input-bg: white;
+            --glow-primary: 0 0 15px rgba(67, 97, 238, 0.5);
+            --glow-success: 0 0 15px rgba(76, 201, 240, 0.5);
+            --glow-warning: 0 0 15px rgba(255, 158, 0, 0.5);
         }
 
         .dark-mode {
@@ -41,6 +44,9 @@
             --header-bg: linear-gradient(to right, var(--primary), var(--secondary));
             --text-color: var(--dark);
             --input-bg: #4a5568;
+            --glow-primary: 0 0 20px rgba(108, 99, 255, 0.6);
+            --glow-success: 0 0 20px rgba(76, 201, 240, 0.6);
+            --glow-warning: 0 0 20px rgba(246, 173, 85, 0.6);
         }
 
         * {
@@ -69,6 +75,19 @@
             box-shadow: var(--shadow);
             overflow: hidden;
             transition: var(--transition);
+            border: 2px solid transparent;
+            animation: containerGlow 3s infinite alternate;
+        }
+
+        @keyframes containerGlow {
+            0% {
+                box-shadow: 0 0 10px rgba(67, 97, 238, 0.3), var(--shadow);
+                border-color: rgba(67, 97, 238, 0.2);
+            }
+            100% {
+                box-shadow: 0 0 25px rgba(67, 97, 238, 0.6), var(--shadow);
+                border-color: rgba(67, 97, 238, 0.4);
+            }
         }
 
         header {
@@ -129,6 +148,7 @@
 
         .dark-mode-toggle:hover {
             background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.05);
         }
 
         .stats {
@@ -144,6 +164,12 @@
             border-radius: 20px;
             font-size: 0.9rem;
             backdrop-filter: blur(5px);
+            transition: var(--transition);
+        }
+
+        .stat-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         }
 
         .app-container {
@@ -172,6 +198,7 @@
             border-color: var(--primary);
             outline: none;
             box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.2);
+            transform: translateY(-2px);
         }
 
         #add-btn {
@@ -192,6 +219,7 @@
         #add-btn:hover {
             background: var(--primary-dark);
             transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(67, 97, 238, 0.3);
         }
 
         .filter-section {
@@ -210,17 +238,54 @@
         .filter-btn {
             padding: 8px 16px;
             background: var(--light-gray);
-            border: none;
+            border: 2px solid transparent;
             border-radius: 20px;
             cursor: pointer;
             transition: var(--transition);
             font-size: 0.9rem;
             color: var(--text-color);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .filter-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            transition: left 0.5s;
+        }
+
+        .filter-btn:hover::before {
+            left: 100%;
+        }
+
+        .filter-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border-color: var(--primary);
         }
 
         .filter-btn.active {
             background: var(--primary);
             color: white;
+            border-color: var(--primary-dark);
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(67, 97, 238, 0.4);
+            }
+            70% {
+                box-shadow: 0 0 0 10px rgba(67, 97, 238, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(67, 97, 238, 0);
+            }
         }
 
         .clear-completed {
@@ -238,6 +303,8 @@
             background: var(--danger);
             color: white;
             border-color: var(--danger);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(230, 57, 70, 0.3);
         }
 
         .tasks-section {
@@ -258,16 +325,56 @@
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
             transition: var(--transition);
             border-left: 4px solid var(--primary);
+            border: 2px solid var(--light-gray);
+            position: relative;
+            overflow: hidden;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        .task-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: var(--primary);
+            transition: var(--transition);
+        }
+
+        .task-item.priority::before {
+            background: var(--warning);
+        }
+
+        .task-item.completed::before {
+            background: var(--success);
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         .task-item:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            transform: translateY(-3px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1), var(--glow-primary);
+            border-color: var(--primary);
         }
 
-        .task-item.completed {
-            opacity: 0.7;
-            border-left-color: var(--success);
+        .task-item.priority:hover {
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1), var(--glow-warning);
+            border-color: var(--warning);
+        }
+
+        .task-item.completed:hover {
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1), var(--glow-success);
+            border-color: var(--success);
         }
 
         .task-checkbox {
@@ -275,12 +382,22 @@
             width: 20px;
             height: 20px;
             cursor: pointer;
+            transition: var(--transition);
+            z-index: 1;
+        }
+
+        .task-checkbox:hover {
+            transform: scale(1.1);
         }
 
         .task-text {
             flex: 1;
             font-size: 1rem;
             color: var(--text-color);
+            transition: var(--transition);
+            min-width: 0;
+            word-break: break-word;
+            z-index: 1;
         }
 
         .task-item.completed .task-text {
@@ -288,9 +405,32 @@
             color: var(--gray);
         }
 
+        .task-actions-container {
+            display: flex;
+            overflow-x: auto;
+            max-width: 150px;
+            padding-bottom: 5px;
+            z-index: 1;
+        }
+
         .task-actions {
             display: flex;
             gap: 10px;
+            padding: 0 5px;
+        }
+
+        .task-actions-container::-webkit-scrollbar {
+            height: 6px;
+        }
+
+        .task-actions-container::-webkit-scrollbar-track {
+            background: var(--light-gray);
+            border-radius: 3px;
+        }
+
+        .task-actions-container::-webkit-scrollbar-thumb {
+            background: var(--primary);
+            border-radius: 3px;
         }
 
         .task-action-btn {
@@ -306,27 +446,32 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            flex-shrink: 0;
         }
 
         .edit-btn:hover {
             background: var(--light-gray);
             color: var(--primary);
+            transform: scale(1.1);
         }
 
         .delete-btn:hover {
             background: var(--light-gray);
             color: var(--danger);
+            transform: scale(1.1);
         }
 
         .priority-btn:hover {
             background: var(--light-gray);
             color: var(--warning);
+            transform: scale(1.1);
         }
 
         .empty-state {
             text-align: center;
             padding: 40px 20px;
             color: var(--gray);
+            animation: fadeIn 0.8s ease-out;
         }
 
         .empty-state i {
@@ -371,6 +516,20 @@
             transform: translateY(-20px);
             transition: var(--transition);
             overflow: hidden;
+            animation: modalAppear 0.3s ease-out;
+            border: 2px solid var(--primary);
+            box-shadow: 0 0 20px rgba(67, 97, 238, 0.4);
+        }
+
+        @keyframes modalAppear {
+            from {
+                opacity: 0;
+                transform: translateY(-30px) scale(0.9);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
         }
 
         .modal-overlay.active .modal {
@@ -412,6 +571,7 @@
         .close-btn:hover {
             background: var(--light-gray);
             color: var(--dark);
+            transform: rotate(90deg);
         }
 
         .modal-body {
@@ -465,6 +625,8 @@
 
         .btn-primary:hover {
             background: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(67, 97, 238, 0.3);
         }
 
         .btn-danger {
@@ -474,6 +636,8 @@
 
         .btn-danger:hover {
             background: #c1121f;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(230, 57, 70, 0.3);
         }
 
         .btn-secondary {
@@ -483,6 +647,7 @@
 
         .btn-secondary:hover {
             background: #d8d8d8;
+            transform: translateY(-2px);
         }
 
         /* Toast Notification */
@@ -508,14 +673,17 @@
 
         .toast-success {
             background: var(--success);
+            box-shadow: 0 0 15px rgba(76, 201, 240, 0.5);
         }
 
         .toast-warning {
             background: var(--warning);
+            box-shadow: 0 0 15px rgba(255, 158, 0, 0.5);
         }
 
         .toast-danger {
             background: var(--danger);
+            box-shadow: 0 0 15px rgba(230, 57, 70, 0.5);
         }
 
         footer {
@@ -526,7 +694,8 @@
             border-top: 1px solid var(--light-gray);
         }
 
-        @media (max-width: 600px) {
+        /* Mobile-specific improvements */
+        @media (max-width: 768px) {
             .header-content {
                 flex-direction: column;
                 gap: 15px;
@@ -559,14 +728,32 @@
                 align-items: center;
             }
             
+            .filter-buttons {
+                justify-content: center;
+                flex-wrap: wrap;
+            }
+            
+            .clear-completed {
+                margin-top: 10px;
+                width: 100%;
+                text-align: center;
+            }
+            
             .task-item {
                 flex-direction: column;
                 align-items: flex-start;
                 gap: 10px;
             }
             
+            .task-actions-container {
+                align-self: stretch;
+                max-width: 100%;
+                justify-content: center;
+            }
+            
             .task-actions {
-                align-self: flex-end;
+                width: 100%;
+                justify-content: flex-end;
             }
             
             .modal {
@@ -575,6 +762,75 @@
             
             .modal-actions {
                 flex-direction: column;
+            }
+            
+            .stats {
+                flex-wrap: wrap;
+            }
+            
+            .stat-item {
+                flex: 1;
+                min-width: 100px;
+                text-align: center;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                border-radius: 12px;
+            }
+            
+            header {
+                padding: 20px;
+            }
+            
+            .app-container {
+                padding: 20px;
+            }
+            
+            h1 {
+                font-size: 1.8rem;
+            }
+            
+            .subtitle {
+                font-size: 1rem;
+            }
+            
+            .input-section {
+                margin-bottom: 20px;
+            }
+            
+            #task-input {
+                padding: 12px 15px;
+            }
+            
+            .filter-buttons {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            
+            .filter-btn {
+                padding: 6px 12px;
+                font-size: 0.85rem;
+            }
+            
+            .clear-completed {
+                padding: 6px 12px;
+                font-size: 0.85rem;
+            }
+            
+            .task-item {
+                padding: 12px;
+            }
+            
+            .task-text {
+                font-size: 0.95rem;
+            }
+            
+            .task-action-btn {
+                width: 28px;
+                height: 28px;
+                font-size: 0.9rem;
             }
         }
     </style>
@@ -994,16 +1250,18 @@
                         taskItem.innerHTML = `
                             <input type="checkbox" class="task-checkbox" ${task.completed ? 'checked' : ''}>
                             <span class="task-text">${task.text}</span>
-                            <div class="task-actions">
-                                <button class="task-action-btn priority-btn" title="${task.priority ? 'Remove priority' : 'Mark as priority'}">
-                                    <i class="fas ${task.priority ? 'fa-star' : 'fa-star'}"></i>
-                                </button>
-                                <button class="task-action-btn edit-btn" title="Edit task">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                                <button class="task-action-btn delete-btn" title="Delete task">
-                                    <i class="fas fa-trash"></i>
-                                </button>
+                            <div class="task-actions-container">
+                                <div class="task-actions">
+                                    <button class="task-action-btn priority-btn" title="${task.priority ? 'Remove priority' : 'Mark as priority'}">
+                                        <i class="fas ${task.priority ? 'fa-star' : 'fa-star'}"></i>
+                                    </button>
+                                    <button class="task-action-btn edit-btn" title="Edit task">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="task-action-btn delete-btn" title="Delete task">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
                             </div>
                         `;
                         
@@ -1021,7 +1279,6 @@
                         // Style priority tasks
                         if (task.priority) {
                             priorityBtn.style.color = 'var(--warning)';
-                            taskItem.style.borderLeftColor = 'var(--warning)';
                         }
                         
                         taskList.appendChild(taskItem);
