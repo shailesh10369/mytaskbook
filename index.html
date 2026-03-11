@@ -956,6 +956,28 @@
         </div>
     </div>
 
+    <!-- Timer Set Modal -->
+    <div class="modal-overlay" id="timer-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title"><i class="fas fa-clock"></i> Set Timer & Reminder</h3>
+                <button class="close-btn" id="close-timer-modal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <label style="display: block; margin-bottom: 5px; font-weight: 600; color: var(--text-color);">Timer Duration (minutes):</label>
+                <input type="number" class="edit-input" id="timer-duration-input" placeholder="Enter minutes..." min="1" value="25">
+                <label style="display: block; margin-bottom: 5px; margin-top: 15px; font-weight: 600; color: var(--text-color);">Email for Reminder (optional):</label>
+                <input type="email" class="edit-input" id="timer-email-input" placeholder="your@email.com">
+                <div class="modal-actions">
+                    <button class="btn btn-secondary" id="cancel-timer">Cancel</button>
+                    <button class="btn btn-primary" id="save-timer">Set Timer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Toast Notification -->
     <div class="toast" id="toast">
         <i class="fas fa-check-circle" id="toast-icon"></i>
@@ -994,7 +1016,14 @@
             const closeClearModal = document.getElementById('close-clear-modal');
             const cancelClear = document.getElementById('cancel-clear');
             const confirmClear = document.getElementById('confirm-clear');
-            
+
+            const timerModal = document.getElementById('timer-modal');
+            const timerDurationInput = document.getElementById('timer-duration-input');
+            const timerEmailInput = document.getElementById('timer-email-input');
+            const closeTimerModal = document.getElementById('close-timer-modal');
+            const cancelTimer = document.getElementById('cancel-timer');
+            const saveTimer = document.getElementById('save-timer');
+
             const toast = document.getElementById('toast');
             const toastIcon = document.getElementById('toast-icon');
             const toastMessage = document.getElementById('toast-message');
@@ -1004,6 +1033,7 @@
             let currentFilter = 'all';
             let currentTaskId = null;
             let isDarkMode = localStorage.getItem('darkMode') === 'true';
+            let timerIntervals = {}; // Store active timer intervals
             
             // Initialize the app
             function init() {
@@ -1051,13 +1081,23 @@
                 closeClearModal.addEventListener('click', closeClearModalFunc);
                 cancelClear.addEventListener('click', closeClearModalFunc);
                 confirmClear.addEventListener('click', confirmClearCompleted);
-                
+
+                closeTimerModal.addEventListener('click', closeTimerModalFunc);
+                cancelTimer.addEventListener('click', closeTimerModalFunc);
+                saveTimer.addEventListener('click', saveTimerSettings);
+
                 // Close modals when clicking outside
                 document.addEventListener('click', function(e) {
                     if (e.target === editModal) closeEditModalFunc();
                     if (e.target === deleteModal) closeDeleteModalFunc();
                     if (e.target === clearModal) closeClearModalFunc();
+                    if (e.target === timerModal) closeTimerModalFunc();
                 });
+
+                // Request notification permission
+                if ('Notification' in window && Notification.permission === 'default') {
+                    Notification.requestPermission();
+                }
             }
             
             // Add a new task
@@ -1074,7 +1114,12 @@
                     text: text,
                     completed: false,
                     priority: false,
-                    createdAt: new Date().toISOString()
+                    createdAt: new Date().toISOString(),
+                    timer: null,
+                    timerDuration: 0,
+                    timerRemaining: 0,
+                    timerActive: false,
+                    email: ''
                 };
                 
                 tasks.push(newTask);
@@ -1247,9 +1292,38 @@
                     filteredTasks.forEach(task => {
                         const taskItem = document.createElement('li');
                         taskItem.className = `task-item ${task.completed ? 'completed' : ''} ${task.priority ? 'priority' : ''}`;
+
+                        // Format date and time
+                        const createdDate = new Date(task.createdAt);
+                        const dateStr = createdDate.toLocaleDateString();
+                        const timeStr = createdDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                        // Format timer display
+                        const timerRemaining = task.timerRemaining || 0;
+                        const minutes = Math.floor(timerRemaining / 60);
+                        const seconds = timerRemaining % 60;
+                        const timerDisplay = timerRemaining > 0 ? `${minutes}:${seconds.toString().padStart(2, '0')}` : '--:--';
+
                         taskItem.innerHTML = `
                             <input type="checkbox" class="task-checkbox" ${task.completed ? 'checked' : ''}>
-                            <span class="task-text">${task.text}</span>
+                            <div style="flex: 1; min-width: 0;">
+                                <span class="task-text">${task.text}</span>
+                                <div style="font-size: 0.8rem; color: var(--gray); margin-top: 5px;">
+                                    <i class="far fa-calendar"></i> ${dateStr} <i class="far fa-clock"></i> ${timeStr}
+                                </div>
+                                <div style="font-size: 0.9rem; margin-top: 8px; display: flex; align-items: center; gap: 8px;">
+                                    <span style="font-weight: 600; color: var(--primary); min-width: 50px;">${timerDisplay}</span>
+                                    <button class="timer-btn timer-start-btn" data-id="${task.id}" title="Start/Pause Timer" style="background: var(--success); color: white; border: none; border-radius: 5px; padding: 4px 10px; cursor: pointer; font-size: 0.8rem;">
+                                        <i class="fas ${task.timerActive ? 'fa-pause' : 'fa-play'}"></i>
+                                    </button>
+                                    <button class="timer-btn timer-reset-btn" data-id="${task.id}" title="Reset Timer" style="background: var(--danger); color: white; border: none; border-radius: 5px; padding: 4px 10px; cursor: pointer; font-size: 0.8rem;">
+                                        <i class="fas fa-redo"></i>
+                                    </button>
+                                    <button class="timer-btn timer-set-btn" data-id="${task.id}" title="Set Timer" style="background: var(--primary); color: white; border: none; border-radius: 5px; padding: 4px 10px; cursor: pointer; font-size: 0.8rem;">
+                                        <i class="fas fa-cog"></i>
+                                    </button>
+                                </div>
+                            </div>
                             <div class="task-actions-container">
                                 <div class="task-actions">
                                     <button class="task-action-btn priority-btn" title="${task.priority ? 'Remove priority' : 'Mark as priority'}">
@@ -1264,23 +1338,29 @@
                                 </div>
                             </div>
                         `;
-                        
+
                         // Add event listeners to the task item
                         const checkbox = taskItem.querySelector('.task-checkbox');
                         const priorityBtn = taskItem.querySelector('.priority-btn');
                         const editBtn = taskItem.querySelector('.edit-btn');
                         const deleteBtn = taskItem.querySelector('.delete-btn');
-                        
+                        const timerStartBtn = taskItem.querySelector('.timer-start-btn');
+                        const timerResetBtn = taskItem.querySelector('.timer-reset-btn');
+                        const timerSetBtn = taskItem.querySelector('.timer-set-btn');
+
                         checkbox.addEventListener('change', () => toggleTask(task.id));
                         priorityBtn.addEventListener('click', () => togglePriority(task.id));
                         editBtn.addEventListener('click', () => showEditModal(task.id));
                         deleteBtn.addEventListener('click', () => showDeleteModal(task.id));
-                        
+                        timerStartBtn.addEventListener('click', () => toggleTimer(task.id));
+                        timerResetBtn.addEventListener('click', () => resetTimer(task.id));
+                        timerSetBtn.addEventListener('click', () => showTimerSetModal(task.id));
+
                         // Style priority tasks
                         if (task.priority) {
                             priorityBtn.style.color = 'var(--warning)';
                         }
-                        
+
                         taskList.appendChild(taskItem);
                     });
                 }
@@ -1307,7 +1387,7 @@
                 // Set toast content and style
                 toastMessage.textContent = message;
                 toast.className = 'toast';
-                
+
                 // Set icon and color based on type
                 switch(type) {
                     case 'success':
@@ -1323,16 +1403,167 @@
                         toastIcon.className = 'fas fa-exclamation-circle';
                         break;
                 }
-                
+
                 // Show toast
                 toast.classList.add('show');
-                
+
                 // Hide after 3 seconds
                 setTimeout(() => {
                     toast.classList.remove('show');
                 }, 3000);
             }
-            
+
+            // Timer Functions
+            function showTimerSetModal(id) {
+                const task = tasks.find(task => task.id === id);
+                if (!task) return;
+
+                currentTaskId = id;
+                timerDurationInput.value = task.timerDuration > 0 ? Math.floor(task.timerDuration / 60) : 25;
+                timerEmailInput.value = task.email || '';
+                timerModal.classList.add('active');
+            }
+
+            function closeTimerModalFunc() {
+                timerModal.classList.remove('active');
+                currentTaskId = null;
+            }
+
+            function saveTimerSettings() {
+                const duration = parseInt(timerDurationInput.value);
+                const email = timerEmailInput.value.trim();
+
+                if (!duration || duration <= 0) {
+                    showToast('Please enter a valid duration!', 'warning');
+                    return;
+                }
+
+                tasks = tasks.map(task => {
+                    if (task.id === currentTaskId) {
+                        return {
+                            ...task,
+                            timerDuration: duration * 60,
+                            timerRemaining: duration * 60,
+                            email: email
+                        };
+                    }
+                    return task;
+                });
+
+                saveTasks();
+                renderTasks();
+                closeTimerModalFunc();
+                showToast('Timer settings saved!', 'success');
+            }
+
+            function toggleTimer(id) {
+                const task = tasks.find(task => task.id === id);
+                if (!task) return;
+
+                if (!task.timerDuration || task.timerDuration === 0) {
+                    showToast('Please set timer duration first!', 'warning');
+                    showTimerSetModal(id);
+                    return;
+                }
+
+                if (task.timerActive) {
+                    // Pause timer
+                    clearInterval(timerIntervals[id]);
+                    delete timerIntervals[id];
+                    tasks = tasks.map(t => t.id === id ? { ...t, timerActive: false } : t);
+                } else {
+                    // Start timer
+                    tasks = tasks.map(t => t.id === id ? { ...t, timerActive: true } : t);
+
+                    timerIntervals[id] = setInterval(() => {
+                        const currentTask = tasks.find(t => t.id === id);
+                        if (!currentTask) {
+                            clearInterval(timerIntervals[id]);
+                            delete timerIntervals[id];
+                            return;
+                        }
+
+                        if (currentTask.timerRemaining > 0) {
+                            tasks = tasks.map(t => {
+                                if (t.id === id) {
+                                    return { ...t, timerRemaining: t.timerRemaining - 1 };
+                                }
+                                return t;
+                            });
+                            saveTasks();
+                            renderTasks();
+                        } else {
+                            // Timer completed
+                            clearInterval(timerIntervals[id]);
+                            delete timerIntervals[id];
+                            tasks = tasks.map(t => t.id === id ? { ...t, timerActive: false } : t);
+                            saveTasks();
+                            renderTasks();
+                            onTimerComplete(currentTask);
+                        }
+                    }, 1000);
+                }
+
+                saveTasks();
+                renderTasks();
+            }
+
+            function resetTimer(id) {
+                const task = tasks.find(task => task.id === id);
+                if (!task) return;
+
+                // Stop timer if running
+                if (timerIntervals[id]) {
+                    clearInterval(timerIntervals[id]);
+                    delete timerIntervals[id];
+                }
+
+                // Reset to original duration
+                tasks = tasks.map(t => {
+                    if (t.id === id) {
+                        return {
+                            ...t,
+                            timerRemaining: t.timerDuration,
+                            timerActive: false
+                        };
+                    }
+                    return t;
+                });
+
+                saveTasks();
+                renderTasks();
+                showToast('Timer reset!', 'success');
+            }
+
+            function onTimerComplete(task) {
+                const completionTime = new Date().toLocaleString();
+
+                // Show browser notification
+                if ('Notification' in window && Notification.permission === 'granted') {
+                    new Notification('Timer Complete!', {
+                        body: `Task: "${task.text}"\nCompleted at: ${completionTime}`,
+                        icon: 'https://cdn-icons-png.flaticon.com/512/3449/3449330.png'
+                    });
+                }
+
+                // Show toast notification
+                showToast(`Timer complete for: ${task.text}`, 'success');
+
+                // Simulate email notification (in a real app, this would call a backend API)
+                if (task.email) {
+                    console.log('Email notification would be sent to:', task.email);
+                    console.log('Task:', task.text);
+                    console.log('Completion time:', completionTime);
+                    showToast(`Email reminder sent to ${task.email}`, 'success');
+                }
+
+                // Play notification sound (optional)
+                try {
+                    const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBDGH0fPTgjMGHm7A7+OZURE');
+                    audio.play().catch(() => {});
+                } catch (e) {}
+            }
+
             // Initialize the application
             init();
         });
